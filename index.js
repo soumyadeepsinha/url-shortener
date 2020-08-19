@@ -3,8 +3,13 @@ const cors = require('cors')
 const morgan = require('morgan')
 const helmet = require('helmet')
 const yup = require('yup')
+const monk = require('monk')
 const { nanoid } = require('nanoid')
 require('dotenv').config()
+
+const database = monk(process.env.MONGO_URI)
+const urls = database.get('urls')
+urls.createIndex({ slug: 1 }, { unique: true })
 
 const app = express()
 
@@ -19,9 +24,18 @@ app.use(express.static('./public'))
 //   // TODO: get a short url by id
 // })
 
-// app.get('/:id', (req, res) => {
-//   // TODO: redirect to url
-// });
+app.get('/:id', async (req, res, next) => {
+  const { id: slug } = req.params
+  try {
+    const url = await urls.findOne({ slug })
+    if (url) {
+      res.redirect(url.url)
+    }
+    res.redirect(`/?error=${slug} not found`)
+  } catch (error) {
+    res.redirect(`/?error=link not found`)
+  }
+});
 
 app.post('/url', async (req, res, next) => {
   // TODO: create a short url
@@ -33,10 +47,19 @@ app.post('/url', async (req, res, next) => {
     if (!slug) {
       slug = nanoid(5);
     }
+    else {
+      const existing = await urls.findOne({ slug });
+      if (existing) {
+        throw new Error('Slug in use. 🍔');
+      }
+    }
     slug = slug.toLowerCase();
-    res.josn({
-      slug, url,
-    })
+    const newUrl = {
+      url,
+      slug,
+    };
+    const created = await urls.insert(newUrl);
+    res.json(created);
   } catch (error) {
     next(error);
   }
@@ -50,7 +73,7 @@ app.use((error, req, res, next) => {
   }
   res.json({
     message: error.message,
-    stack: preocess.env.NODE_ENV === 'production' ? '🎂' : error.stack,
+    stack: process.env.NODE_ENV === 'production' ? '🎂' : error.stack,
   })
 })
 

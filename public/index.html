@@ -12,6 +12,20 @@
   <header>
     <h1>cdg.sh- Url Shortener for your websites</h1>
   </header>
+  <main id="app">
+    <form @submit.prevent="createUrl()">
+      <label for="url">URL</label>
+      <input v-model="url" id="url" name="url">
+      <label for="slug">URL</label>
+      <input v-model="slug" id="slug" name="slug">
+      <button type="submit">Create</button>
+    </form>
+    <pre>
+      {{JSON.stringify(created, null, 2)}}
+    </pre>
+  </main>
+  <script src="https://unpkg.com/vue@2.6.11/dist/vue.js"></script>
+  <script src="app.js"></script>
 </body>
 
 </html>
